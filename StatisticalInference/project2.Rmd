@@ -1,0 +1,153 @@
+---
+title: "Statistical Inference - Inferential data analysis"
+author: "Alexandre Georges"
+output: pdf_document
+---
+
+# Loading and basic analyses
+
+## Dataset
+
+*Basic information about the Tooth Growth dataset*
+
+```{r, echo = TRUE}
+head(ToothGrowth)
+str(ToothGrowth)
+summary(ToothGrowth)
+var(ToothGrowth$len)
+hist(ToothGrowth$len, col = 'red', xlab = 'Tooth length', main = 'Histogram of tooth length')
+```
+
+**The tooth length's variance is high and thus length is quite spreaded over a big interval: from 5 to 30.**
+
+```{r, include = FALSE}
+library(dplyr)
+```
+
+## Orange juice supplement
+
+*Tooth length mean and variance for orange juice*
+
+```{r, echo = TRUE}
+OJToothGrowth <- ToothGrowth[ToothGrowth$supp == 'OJ', ]
+summary(OJToothGrowth)
+var(OJToothGrowth$len)
+hist(OJToothGrowth$len, col = 'red', xlab = 'Tooth length', main = 'Histogram of tooth length for orange juice')
+```
+
+**There is a big drop of the tooth length for the interval 10 to 15.**
+
+*Mean and variance grouped by dosage*
+
+```{r, echo = TRUE}
+summarize(group_by(OJToothGrowth, dose), mean = mean(len), variance = var(len))
+```
+
+**The variance decreases and the tooth length increases when the dosage increases.**
+
+## Vitamin C supplement
+
+*Tooth length mean and variance for vitamin C*
+
+```{r, echo = TRUE}
+VCToothGrowth <- ToothGrowth[ToothGrowth$supp == 'VC', ]
+summary(VCToothGrowth)
+var(VCToothGrowth$len)
+hist(VCToothGrowth$len, col = 'red', xlab = 'Tooth length', main = 'Histogram of tooth length for vitamin C')
+```
+
+**The tooth length is more spreaded than with orange juice and there is no noticeable difference between the intervals.**
+
+*Mean and variance grouped by dosage*
+
+```{r, echo = TRUE}
+summarize(group_by(VCToothGrowth, dose), mean = mean(len), variance = var(len))
+```
+
+**The variance is high with a dosage of 2 compared to the other dosages and the tooth length increases when the dosage increases.**
+
+# Basic summary of the data
+
+A good summary of the data was provided in the section above. To complete this basic analysis, the charts below show how spreaded the tooth length is.
+
+## Comparison of orange juice and vitamin C
+
+```{r, echo = TRUE}
+library(ggplot2)
+ggplot(ToothGrowth, aes(x = factor(supp), y = len, fill = supp)) +
+  geom_boxplot() +
+  labs(x = 'Supplement', y = 'length')
+```
+
+## Comparison of the supplements and dosage.
+
+```{r, echo = TRUE}
+ggplot(ToothGrowth, aes(x = factor(dose), y = len, fill = supp)) +
+  geom_boxplot() +
+  facet_grid(. ~ supp) +
+  labs(x = 'Dose', y = 'length')
+```
+
+# Tests to compare tooth growth by supp and dose
+
+## Test for orange juice and vitamin C
+
+*T test between orange juice and vitamin C*
+
+```{r, echo = TRUE}
+t.test(OJToothGrowth$len, VCToothGrowth$len, var.equal = TRUE)
+```
+
+**The P value is small but slightly above 5%. So we can not tell for sure if there is a difference between the 2 groups. However the 95% confidence interval tends to show higher tooth growth for the orange juice than for the vitamin C.**
+
+## Tests between dosages
+
+*T tests between dosages for both supplements*
+
+### Orange juice
+
+```{r, echo = TRUE}
+OJToothGrowth05 <- OJToothGrowth[OJToothGrowth$dose == 0.5, ]
+OJToothGrowth1 <- OJToothGrowth[OJToothGrowth$dose == 1, ]
+OJToothGrowth2 <- OJToothGrowth[OJToothGrowth$dose == 2, ]
+```
+```{r, echo = TRUE}
+t.test(OJToothGrowth05$len, OJToothGrowth1$len, var.equal = TRUE)
+```
+```{r, echo = TRUE}
+t.test(OJToothGrowth05$len, OJToothGrowth2$len, var.equal = TRUE)
+```
+```{r, echo = TRUE}
+t.test(OJToothGrowth1$len, OJToothGrowth2$len, var.equal = TRUE)
+```
+
+**The P value is very small, the dosage has a big impact on the length (higher the dosage, higher the tooth length). The 95% confidence interval shows a big gap between dosages. However the difference is less pronounced for the dosages 1 and 2.**
+
+### Vitamin C
+
+```{r, echo = TRUE}
+VCToothGrowth05 <- VCToothGrowth[VCToothGrowth$dose == 0.5, ]
+VCToothGrowth1 <- VCToothGrowth[VCToothGrowth$dose == 1, ]
+VCToothGrowth2 <- VCToothGrowth[VCToothGrowth$dose == 2, ]
+```
+```{r, echo = TRUE}
+t.test(VCToothGrowth05$len, VCToothGrowth1$len, var.equal = TRUE)
+```
+```{r, echo = TRUE}
+t.test(VCToothGrowth05$len, VCToothGrowth2$len, var.equal = TRUE)
+```
+```{r, echo = TRUE}
+t.test(VCToothGrowth1$len, VCToothGrowth2$len, var.equal = TRUE)
+```
+
+**The P value is very small, the dosage has a big impact on the length (higher the dosage, higher the tooth length). The 95% confidence interval shows a big gap between dosages.**
+
+# Conclusion
+
+## Supplements
+
+The comparison between the supplements does not show any obvious difference, the orange juice according to means is slightly more effective.
+
+## Dosage
+
+For both supplements, the p values are small and the 95% confidence intervals are big therefore the dosage has a big impact on the tooth length (higher the dosage, higher the tooth length). This result was already visible on the box plot and is now confirmed.

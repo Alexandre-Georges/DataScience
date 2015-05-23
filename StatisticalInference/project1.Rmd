@@ -1,0 +1,144 @@
+---
+title: "Statistical Inference - Simulation exercise"
+author: "Alexandre Georges"
+output: pdf_document
+---
+
+# Overview
+
+This study will compare 2 distributions: exponential and normal. The objective is to determine is they follow the same distribution. To be accurate, a big set of samples will be randomly created and graphs will present the results.
+
+# Simulation
+
+## Reproducibility
+
+Results need to be reproducible, seed is set to a random value.
+
+```{r, echo = TRUE}
+set.seed(123)
+```
+
+## Constants
+
+Definition of constants:
+
+- lambda = 0.2
+
+- number of variables to generate (n) = 40
+
+- number of simulations to make (simulations) = 4000
+
+```{r, echo = TRUE}
+lambda <- 0.2
+n <- 40
+simulations <- 1000
+```
+
+## Theoretical mean and variance of the exponential distribution
+
+Calculation of the theoretical mean and the theoretical variance of the exponential distribution, using the exercise formulas.
+
+```{r, echo = TRUE}
+theoretical_mean <- 1 / lambda
+theoretical_mean
+theoretical_variance <- (1 / lambda) ^ 2
+theoretical_variance
+```
+
+## Distributions generation
+
+Generation of the distributions means and variances (exponential and normal) at the same place to not waste time.
+
+```{r, echo = TRUE}
+expMeans <- NULL
+expVariances <- NULL
+
+normMeans <- NULL
+normVariances <- NULL
+
+for (i in 1 : simulations) {
+  values <- rexp(n, lambda)
+  expMeans <- c(expMeans, mean(values))
+  expVariances <- c(expVariances, var(values))
+  
+  values <- rnorm(n, mean = theoretical_mean, sd = sqrt(theoretical_variance))
+  normMeans <- c(normMeans, mean(values))
+  normVariances <- c(normVariances, var(values))
+}
+```
+
+# Sample mean versus theoretical mean
+
+This graph shows the frequency of the samples means. It also shows the theoretical mean in red.
+
+```{r, echo = TRUE}
+hist(
+  expMeans,
+  breaks = seq(0, 9, by = 0.5),
+  main = 'Exponential distribution means vs theoretical mean',
+  xlab = 'Exponential means'
+)
+abline(v = theoretical_mean, col = 'red', lwd = 4)
+text(2, 220, 'Theoretical mean', col = 'red', font = 2)
+```
+
+The exponential distribution fits well the theoretical mean: the line is in the middle.
+
+# Sample variance versus theoretical variance
+
+This graph shows the frequency of the samples variances. It also shows the theoretical variance in red.
+
+```{r, echo = TRUE}
+hist(
+  expVariances,
+  breaks = seq(0, 110, by = 5),
+  main = 'Exponential distribution variances',
+  xlab = 'Exponential variances'
+)
+abline(v = theoretical_variance, col = 'red', lwd = 4)
+text(80, 200, 'Theoretical variance', col = 'red', lwd = 4, font = 2)
+```
+
+The exponential distribution match quite well the theoretical variance. Samples are quite concentrated on the left of the line and more spreaded on the right but overall the theoretical variance is on the right spot: samples are equally distributed on both sides of the line.
+
+# Distribution
+
+Graphs of means and variances for both distributions.
+
+The scale of the normal distribution graphs can be different from the exponential graphs', so the X axis is manually defined. That way graphs have the same scale and can easily be compared.
+
+
+```{r, echo = TRUE}
+par(mfrow = c(2, 2))
+
+hist(
+  expMeans,
+  breaks = seq(0, 9, by = 0.5),
+  main = 'Exponential distribution means',
+  xlab = 'Exponential means'
+)
+
+hist(
+  expVariances,
+  breaks = seq(0, 110, by = 5),
+  main = 'Exponential distribution variances',
+  xlab = 'Exponential variances'
+)
+
+hist(
+  normMeans,
+  breaks = seq(0, 9, by = 0.5),
+  main = 'Normal distribution means',
+  xlab = 'Normal means'
+)
+hist(
+  normVariances,
+  breaks = seq(0, 110, by = 5),
+  main = 'Normal distribution variances',
+  xlab = 'Normal variances'
+)
+```
+
+As we can see, exponential means match very well normal means. Results are slightly less obvious for variances but the overall shapes and values are the same.
+
+We can conclude that the exponential distribution follows a normal distribution.
