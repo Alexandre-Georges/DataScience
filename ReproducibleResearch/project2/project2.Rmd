@@ -1,0 +1,239 @@
+---
+title: "Health and economic consequences of weather events"
+output: 
+  html_document:
+    keep_md: true
+---
+
+# Synopsis
+
+Understanding results of weather is essential to prevent major issues and help reducing their impacts on us. This study is centered on the economical and health problems that result from weather events. It will display which events have the biggest consequences on the health of the USA residents and on the economy of the USA.
+
+# Data processing
+
+## Loading the data
+
+The dataset is big thus results are cached.
+
+```{r loading, echo = TRUE, cache = TRUE}
+data <- read.csv(bzfile('repdata-data-StormData.csv.bz2'))
+head(data)
+```
+
+## Processing data
+
+There are a lot of typos in the event property, they require a treatment to correct them and to correctly add them up.
+
+As many typos as possible have been fixed. However my knowledge in meteorological events is limited so there will still be duplicated events. It should not skew results too much because errors are marginal and thus do not represent a lot of records.
+
+### Lower case
+
+The event name is converted to lower case.
+
+```{r lower, echo = TRUE}
+library(stringr)
+data$EVTYPE <- tolower(data$EVTYPE)
+```
+
+### Punctuation signs
+
+All punctuation signs are removed.
+
+```{r punctuationTypos, echo = TRUE}
+data$EVTYPE <- gsub('&', 'and', data$EVTYPE)
+data$EVTYPE <- gsub('/', ' ', data$EVTYPE)
+data$EVTYPE <- gsub('\\\\', '', data$EVTYPE)
+data$EVTYPE <- gsub('-', ' ', data$EVTYPE)
+data$EVTYPE <- gsub('\\(', '', data$EVTYPE)
+data$EVTYPE <- gsub(')', '', data$EVTYPE)
+data$EVTYPE <- gsub('\\.', '', data$EVTYPE)
+data$EVTYPE <- gsub(';', '', data$EVTYPE)
+data$EVTYPE <- gsub('  ', ' ', data$EVTYPE)
+```
+
+### Trimming
+
+Trimming of the event type to remove extra spaces before and after.
+
+```{r trimming, echo = TRUE}
+data$EVTYPE <- str_trim(data$EVTYPE)
+```
+
+### Extra S
+
+Trailing S are removed.
+
+```{r trailingS, echo = TRUE}
+data$EVTYPE <- gsub('([a-z])s([ ]|$|/)', '\\1\\2', data$EVTYPE)
+```
+
+### Trailing characters
+
+Uneeded words are removed.
+
+```{r trailingCharacters, echo = TRUE}
+data$EVTYPE <- gsub('[ ]*mph[\\.]*$', '', data$EVTYPE)
+data$EVTYPE <- gsub('[ ]*and[ ]*', '', data$EVTYPE)
+```
+
+### Typos
+
+Typos are fixed manually, a biological brain is required to fix them!
+
+```{r typos, echo = TRUE}
+data$EVTYPE <- gsub('advisorie', 'advisory', data$EVTYPE)
+data$EVTYPE <- gsub('coastalstorm', 'coastal storm', data$EVTYPE)
+data$EVTYPE <- gsub('flashflood', 'flash flood', data$EVTYPE)
+data$EVTYPE <- gsub('fld', 'flood', data$EVTYPE)
+data$EVTYPE <- gsub('flooding', 'flood', data$EVTYPE)
+data$EVTYPE <- gsub('floodg', 'flood', data$EVTYPE)
+data$EVTYPE <- gsub('floodin', 'flood', data$EVTYPE)
+data$EVTYPE <- gsub('hail075', 'hail 075', data$EVTYPE)
+data$EVTYPE <- gsub('hvy', 'heavy', data$EVTYPE)
+data$EVTYPE <- gsub('lighting', 'lightning', data$EVTYPE)
+data$EVTYPE <- gsub('ligntning', 'lightning', data$EVTYPE)
+data$EVTYPE <- gsub('mircoburst', 'microburst', data$EVTYPE)
+data$EVTYPE <- gsub('micoburst', 'microburst', data$EVTYPE)
+data$EVTYPE <- gsub('rainwind', 'rain wind', data$EVTYPE)
+data$EVTYPE <- gsub('sml', 'small', data$EVTYPE)
+data$EVTYPE <- gsub('snowhigh', 'snow high', data$EVTYPE)
+data$EVTYPE <- gsub('snowice', 'snow ice', data$EVTYPE)
+data$EVTYPE <- gsub('strm', 'stream', data$EVTYPE)
+data$EVTYPE <- gsub('streamurban', 'stream urban', data$EVTYPE)
+data$EVTYPE <- gsub('thuderstorm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thundeerstorm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thunderestorm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thunderstrom', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thundestorm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thunerstorm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thundertorm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thundertsorm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('thunderstormw', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('tornadoe', 'tornado', data$EVTYPE)
+data$EVTYPE <- gsub('torndao', 'tornado', data$EVTYPE)
+data$EVTYPE <- gsub('tstm', 'thunderstorm', data$EVTYPE)
+data$EVTYPE <- gsub('unseasonable', 'unseasonably', data$EVTYPE)
+data$EVTYPE <- gsub('urbansmall', 'urban small', data$EVTYPE)
+data$EVTYPE <- gsub('wnd', 'wind', data$EVTYPE)
+data$EVTYPE <- gsub('winds', 'wind', data$EVTYPE)
+data$EVTYPE <- gsub('windhail', 'wind hail', data$EVTYPE)
+data$EVTYPE <- gsub('wind53', 'wind 53', data$EVTYPE)
+data$EVTYPE <- gsub('wins', 'wind', data$EVTYPE)
+
+data[data$EVTYPE == 'avalance', ]$EVTYPE <- 'avalanche'
+data[data$EVTYPE == 'beach erosin', ]$EVTYPE <- 'beach erosion'
+data[data$EVTYPE == 'coastalflood', ]$EVTYPE <- 'coastal flood'
+data[data$EVTYPE == 'dust devel', ]$EVTYPE <- 'dust devil'
+data[data$EVTYPE == 'duststorm', ]$EVTYPE <- 'dust storm'
+data[data$EVTYPE == 'extreme wind chill', ]$EVTYPE <- 'extreme windchill'
+data[data$EVTYPE == 'hail storm', ]$EVTYPE <- 'hailstorm'
+data[data$EVTYPE == 'heavy precipatation', ]$EVTYPE <- 'heavy precipitation'
+data[data$EVTYPE == 'thunderstorm damage to', ]$EVTYPE <- 'thunderstorm damage'
+data[data$EVTYPE == 'thunderstorm w ind', ]$EVTYPE <- 'thunderstorm wind'
+data[data$EVTYPE == 'thunderstorm win', ]$EVTYPE <- 'thunderstorm wind'
+data[data$EVTYPE == 'thunderstormw', ]$EVTYPE <- 'thunderstorm'
+data[data$EVTYPE == 'thunderstormind', ]$EVTYPE <- 'thunderstorm wind'
+data[data$EVTYPE == 'water spout', ]$EVTYPE <- 'waterspout'
+data[data$EVTYPE == 'wintery mix', ]$EVTYPE <- 'wintry mix'
+data[data$EVTYPE == 'winter mix', ]$EVTYPE <- 'wintry mix'
+```
+
+## Summing data
+
+The data needs to be reshaped to be nicely displayed with graphs.
+
+### Grouping
+
+We are interested in the consequences of events, therefor the data has to be grouped by event.
+
+```{r grouping, echo = TRUE}
+library(dplyr)
+data_gb_evtype <- group_by(data, EVTYPE)
+```
+
+### Summing
+
+The new data will be composed of 5 columns. Those columns contain the sum of the former properties we are interested in.
+
+It will result in the sum of fatalities, injuries, property damages, crop damages and the total damages (property + crop) by event type.
+
+```{r summing, echo = TRUE}
+evttype_summary <- summarize(data_gb_evtype, fatalities_sum = sum(FATALITIES), injuries_sum = sum(INJURIES), property_damages_sum = sum(PROPDMG), crop_damages_sum = sum(CROPDMG), total_damages_sum = sum(PROPDMG) + sum(CROPDMG))
+```
+
+### Reports
+
+2 sorted data frames are created:
+- one for health, ordered by fatalities and then injuries
+- another one for economical purposes that contains property damages, crop damages and the sum of both
+
+```{r reporting, echo = TRUE}
+health_summary <- evttype_summary[order(-evttype_summary$fatalities_sum, -evttype_summary$injuries_sum), c(1, 2, 3)]
+economical_summary <- evttype_summary[order(-evttype_summary$property_damages_sum, -evttype_summary$crop_damages_sum), c(1, 4, 5, 6)]
+```
+
+### Filtering main causes
+
+There are a lot of different events, this study is centered on the biggest causes, thus only the main events will be kept.
+
+```{r filtering, echo = TRUE}
+health_summary_filtered <- health_summary[1:5, ]
+economical_summary_filtered <- economical_summary[1:5, ]
+```
+
+# Results
+
+Results will be displayed with bar plots from GGPlot2, it is the easiest and the most understandable way to display the data.
+
+```{r echo = TRUE}
+library(ggplot2)
+```
+
+## Event factor
+
+GGPlot2 orders events in the alphabetical order, it considers them as string. However the study is centered on the impact of events and it is simpler to compare them when they are in a decreasing order.
+
+To solve that issue, the event type is converted to an ordered factor.
+
+```{r eventFactor, echo = TRUE}
+health_summary_filtered$event <- factor(health_summary_filtered$EVTYPE, levels = health_summary_filtered$EVTYPE[rev(order(health_summary_filtered$fatalities_sum))])
+economical_summary_filtered$event <- factor(economical_summary_filtered$EVTYPE, levels = economical_summary_filtered$EVTYPE[rev(order(economical_summary_filtered$total_damages_sum))])
+```
+
+## Health graph
+
+There are 2 graphs for the health part, one for fatalities and a second one for injuries. Please note that the order of events is the same between both graphs to stay consistent.
+
+### Fatalities
+
+```{r fatalitiesGraph, echo = TRUE}
+p1 <- ggplot(health_summary_filtered, aes(x = event, y = fatalities_sum)) +
+  geom_bar(stat = 'identity', position = 'dodge', fill = 'red') +
+  labs(x = 'Event type', y = 'Fatalities', title = 'Fatalities by event')
+print(p1)
+```
+
+*Fig 1. Number of fatalities in the US grouped by type of event and sorted by fatalities (5 most important events)*
+
+### Injuries
+```{r injuriesGraph, echo = TRUE}
+p2 <- ggplot(health_summary_filtered, aes(x = event, y = injuries_sum)) +
+  geom_bar(stat = 'identity', position = 'dodge', fill = 'red') +
+  labs(x = 'Event type', y = 'Injuries', title = 'Injuries by event')
+print(p2)
+```
+
+*Fig 2. Number of injuries in the US grouped by type of event and sorted by **fatalities** (5 most important events)*
+
+## Economical graph
+
+This graph represents the impact on the economy. Property damages and crop damages both represent an amount of money, so to fix the damages resulting from an event we need to add those two types of damages and this sum is displayed in the graph below.
+
+```{r economicalGraph, echo = TRUE}
+p3 <- ggplot(economical_summary_filtered, aes(x = event, y = total_damages_sum)) +
+  geom_bar(stat = 'identity', position = 'dodge', fill = 'red') +
+  labs(x = 'Event type', y = 'Damage costs in $', title = 'Damage costs by event')
+print(p3)
+```
+
+*Fig 3. Money needed to fix damages created by meteorological events in the US grouped by type of events in decreasing order (5 most important events)*

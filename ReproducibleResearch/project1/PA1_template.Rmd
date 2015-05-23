@@ -1,0 +1,67 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+## Loading and preprocessing the data
+```{r, include = FALSE}
+library(dplyr)
+```
+```{r loading, echo = TRUE}
+data <- read.csv('activity.csv')
+data$date <- as.Date(data$date)
+head(data)
+```
+
+## What is mean total number of steps taken per day?
+```{r meanDate, echo = TRUE}
+dataGroupedByDate <- group_by(data, date)
+stepSummary <- summarize(dataGroupedByDate, stepsSum = sum(steps))
+
+hist(stepSummary$stepsSum, col = 'red', xlab = 'Steps ranges', ylab = 'Frequency', main = 'Steps range frequency')
+
+mean(stepSummary$stepsSum, na.rm = TRUE)
+median(stepSummary$stepsSum, na.rm = TRUE)
+```
+
+## What is the average daily activity pattern?
+```{r meanInterval, echo = TRUE}
+dataGroupedByInterval <- group_by(data, interval)
+stepSummary <- summarize(dataGroupedByInterval, stepsMean = mean(steps, na.rm = TRUE))
+
+plot(stepSummary$steps, type = 'l', col = 'red', xlab = 'Interval', ylab = 'Mean steps', main = 'Mean steps per interval')
+
+```
+
+## Imputing missing values
+```{r missingValues, echo = TRUE}
+nrow(data[is.na(data$steps), ])
+```
+
+```{r replacingMissingValues, echo = TRUE}
+data[is.na(data), ]$steps <- stepSummary[stepSummary$interval == data[is.na(data), ]$interval]$stepsMean
+dataGroupedByDate <- group_by(data, date)
+stepSummary <- summarize(dataGroupedByDate, stepsSum = sum(steps, na.rm = TRUE))
+
+hist(stepSummary$stepsSum, col = 'red', xlab = 'Steps ranges', ylab = 'Frequency', main = 'Steps range frequency')
+
+mean(stepSummary$stepsSum, na.rm = TRUE)
+median(stepSummary$stepsSum, na.rm = TRUE)
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+```{r patternWeekWeekend, echo = TRUE}
+library(lattice)
+
+data$day <- 'weekday'
+data[weekdays(data$date) == 'Saturday' | weekdays(data$date) == 'Sunday', ]$day <- 'weekend'
+
+dataGroupedByInterval <- group_by(data, day, interval)
+stepSummary <- summarize(dataGroupedByInterval, stepsMean = mean(steps, na.rm = TRUE))
+
+xyplot(stepsMean ~ interval | day, data = stepSummary, layout = c(1, 2), type = 'l', xlab = 'Interval', ylab = 'Mean steps', main = 'Mean steps per interval')
+
+```
