@@ -1,0 +1,205 @@
+---
+title: "Regression Models - Automatic or Manual"
+author: "Alexandre Georges"
+date: "May 20, 2015"
+output: pdf_document
+---
+
+This report contains an analysis of the impact of the transmission mode on the mileage. The R code will not be displayed because of the length restriction (2 pages for the report and 3 pages for the Appendix) which is very short. So we will focus on the most important data and go straight to the point.
+
+# Convertion of coefficients
+
+First we need to convert some columns from numbers to factors as they do not contain quantifiable data. It includes: cylinders, transmission mode, number of gears, number of carburators and type of engine (V or straight).
+
+```{r, echo = FALSE}
+data(mtcars)
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$am <- factor(mtcars$am)
+levels(mtcars$am) <- c('auto', 'manual')
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+mtcars$vs <- factor(mtcars$vs)
+levels(mtcars$vs) <- c('V', 'straight')
+```
+
+# Exploratory analysis
+
+We will now continue by gathering the variance and mean of manual and automatic cars to get a general idea of the difference.
+
+```{r, echo = FALSE}
+autoMtcars <- mtcars[mtcars$am == 'auto', ]
+manualMtcars <- mtcars[mtcars$am == 'manual', ]
+
+data.frame(
+  model = c('Automatic', 'Manual'),
+  mean = c(mean(autoMtcars$mpg), mean(manualMtcars$mpg)),
+  variance = c(var(autoMtcars$mpg), var(manualMtcars$mpg))
+)
+```
+The MPG for automatic cars is smaller and has a smaller variance than manual cars (cf Appendix for a graph). Now we are going to perform a general linear regression to determine which variables have the biggest impact on the MPG.
+```{r, echo = FALSE}
+summary.coefficients <- summary(lm(mpg ~ ., mtcars))$coefficients
+summary.coefficients <- summary.coefficients[order(summary.coefficients[, 4]), ]
+summary.coefficients[1:5, ]
+```
+The summary above shows that weight and horsepower are the most significant variables to consider, their standard errors is low compared to their estimates and their P values are low compared to the other variables. We have kept only the top 5.
+
+In the next part, we will use these variables to check if there is a relation between them and the transmission mode.
+
+# Models
+
+The transmission alone is not relevant to compare the mileage because the variances are very high especially for automatic cars. So we need to refine the model by adding variables, we are going to combine the transmission with the 2 most influential variables: weight and horsepower. For both of them we will make a linear regression:
+
+- by adding the transmission to the variable
+
+- by multiplying the transmission with the variable
+
+For every model a full summary and a graph can be found in the Appendix.
+
+**Comparison of the P values**
+
+The P value is a great indicator to know if a model is a good fit or not. In this analysis we will get P values for every coefficient of the model and present the maximum and the mean for each model. Cf the Appendix for the details of P values.
+
+```{r, echo = FALSE}
+wt.both.fit <- lm(mpg ~ am + wt, mtcars)
+wt.interaction.fit <- lm(mpg ~ am * wt, mtcars)
+hp.both.fit <- lm(mpg ~ am + hp, mtcars)
+hp.interaction.fit <- lm(mpg ~ am * hp, mtcars)
+
+data.frame(
+  model = c(
+    'Mpg ~ weight + transmission',
+    'Mpg ~ weight * transmission',
+    'Mpg ~ horsepower + transmission',
+    'Mpg ~ horsepower * transmission'
+  ),
+  maxPValue = c(
+    max(summary(wt.both.fit)$coefficient[, 4]),
+    max(summary(wt.interaction.fit)$coefficient[, 4]),
+    max(summary(hp.both.fit)$coefficient[, 4]),
+    max(summary(hp.interaction.fit)$coefficient[, 4])
+  ),
+  meanPValue = c(
+    mean(summary(wt.both.fit)$coefficient[, 4]),
+    mean(summary(wt.interaction.fit)$coefficient[, 4]),
+    mean(summary(hp.both.fit)$coefficient[, 4]),
+    mean(summary(hp.interaction.fit)$coefficient[, 4])
+  )
+)
+```
+
+2 models stand out: Mpg ~ weight * transmission and Mpg ~ horsepower + transmission, they both have low P values.
+
+# Residuals
+
+Now we will examine the residuals to validate that the models are actually good, we will get the residuals and display the sum of their absolute values, their means and variance. A plot is available in the Appendix section.
+
+```{r, echo = FALSE}
+wt.both.resid <- resid(wt.both.fit)
+wt.interaction.resid <- resid(wt.interaction.fit)
+hp.both.resid <- resid(hp.both.fit)
+hp.interaction.resid <- resid(hp.interaction.fit)
+
+data.frame(
+  model = c('Mpg ~ weight + transm', 'Mpg ~ weight * transm', 'Mpg ~ horsepower + transm', 'Mpg ~ horsepower * transm'),
+  totalResiduals = c(sum(abs(wt.both.resid)), sum(abs(wt.interaction.resid)), sum(abs(hp.both.resid)), sum(abs(hp.interaction.resid))),
+  meanResiduals = c(mean(wt.both.resid), mean(wt.interaction.resid), mean(hp.both.resid), mean(hp.interaction.resid)),
+  varianceResiduals = c(var(wt.both.resid), var(wt.interaction.resid), var(hp.both.resid), var(hp.interaction.resid))
+)
+```
+
+Residuals for every models are close except for Mpg ~ weight * transmission. The total and the variance is smaller compared to the others.
+
+# Conclusion
+
+Weight and horsepower are both relevant variables to predict the MPG by transmission. The model has a huge influence on the results so we will keep only the models with the lowest error rates. The P value test showed that 2 models are good fit: Mpg ~ weight * transmission and Mpg ~ horsepower + transmission.
+
+Then the residuals test helped us to find the best model: Mpg ~ weight * transmission.
+
+The result for the mileage is as follows: +15 mpg for manual transmission compared to the intercept but the gap decreases when the weight increases (cf the summary in the Appendix).
+
+In any case, for all of the models, results are the same: a manual transmission significantly increases the mileage.
+
+The comparison between weight and horsepower is really interesting: when we consider mpg as the output, there is a relationship between weight and transmission (model with weight * transmission), however horsepower and transmission are independent (model with horsepower + transmission).
+
+# Appendix
+
+## Exploratory analysis
+
+```{r, echo = FALSE}
+plot(mtcars$am, mtcars$mpg, col = c('red', 'orange'), main = 'Scattering of mpg by transmission')
+```
+
+## Models
+
+**Mpg ~ weight + transmission**
+```{r, echo = FALSE}
+summary(wt.both.fit)$coefficient
+```
+
+**Mpg ~ weight * transmission**
+```{r, echo = FALSE}
+summary(wt.interaction.fit)$coefficient
+```
+
+**Mpg ~ horsepower + transmission**
+```{r, echo = FALSE}
+summary(hp.both.fit)$coefficient
+```
+
+**Mpg ~ horsepower * transmission**
+```{r, echo = FALSE}
+summary(hp.interaction.fit)$coefficient
+```
+
+**Plots**
+
+```{r, echo = FALSE}
+par(mfrow = c(2, 2))
+plot(mpg ~ wt, data = mtcars, pch = 19, col = c('red', 'orange'), main = 'Mpg ~ weight + transmission', xlab = 'Weight', ylab = 'Miles per galon')
+abline(wt.both.fit$coef[1], wt.both.fit$coef[3], lwd = 3, col = 'red')
+abline(wt.both.fit$coef[1] + wt.both.fit$coef[2], wt.both.fit$coef[3], lwd = 3, col = 'orange')
+legend('topright', legend = levels(mtcars$am), text.col = c('red', 'orange'))
+
+plot(mpg ~ wt, data = mtcars, pch = 19, col = c('red', 'orange'), main = 'Mpg ~ weight * transmission', xlab = 'Weight', ylab = 'Miles per galon')
+abline(wt.interaction.fit$coef[1], wt.interaction.fit$coef[3], lwd = 3, col = 'red')
+abline(
+  wt.interaction.fit$coef[1] + wt.interaction.fit$coef[2],
+  wt.interaction.fit$coef[3] + wt.interaction.fit$coef[4],
+  lwd = 3, col = 'orange'
+)
+legend('topright', legend = levels(mtcars$am), text.col = c('red', 'orange'))
+
+plot(mpg ~ hp, data = mtcars, pch = 19, col = c('red', 'orange'), main = 'Mpg ~ horsepower + transmission', xlab = 'Horsepower', ylab = 'Miles per galon')
+abline(hp.both.fit$coef[1], hp.both.fit$coef[3], lwd = 3, col = 'red')
+abline(hp.both.fit$coef[1] + hp.both.fit$coef[2], hp.both.fit$coef[3], lwd = 3, col = 'orange')
+legend('topright', legend = levels(mtcars$am), text.col = c('red', 'orange'))
+
+plot(mpg ~ hp, data = mtcars, pch = 19, col = c('red', 'orange'), main = 'Mpg ~ horsepower * transmission', xlab = 'Horsepower', ylab = 'Miles per galon')
+abline(hp.interaction.fit$coef[1], hp.interaction.fit$coef[3], lwd = 3, col = 'red')
+abline(
+  hp.interaction.fit$coef[1] + hp.interaction.fit$coef[2],
+  hp.interaction.fit$coef[3] + hp.interaction.fit$coef[4],
+  lwd = 3, col = 'orange'
+)
+legend('topright', legend = levels(mtcars$am), text.col = c('red', 'orange'))
+```
+
+## Residuals plots
+
+```{r, echo = FALSE}
+wt.yMin <- min(wt.both.resid, wt.interaction.resid)
+wt.yMax <- max(wt.both.resid, wt.interaction.resid)
+
+plot(mtcars$wt, wt.both.resid, col = 'orange', pch = 19, ylim = c(wt.yMin, wt.yMax), xlab = 'Weight', ylab = 'Miles per galon', main = 'Residuals for models with weight')
+points(mtcars$wt, wt.interaction.resid, col = 'blue', pch = 18)
+legend('topright', legend = c('Mpg ~ weight + transmission', 'Mpg ~ weight * transmission'), text.col = c('orange', 'blue'))
+
+hp.yMin <- min(hp.both.resid, hp.interaction.resid)
+hp.yMax <- max(hp.both.resid, hp.interaction.resid)
+
+plot(mtcars$wt, hp.both.resid, col = 'orange', pch = 19, ylim = c(hp.yMin, hp.yMax), xlab = 'Horsepower', ylab = 'Miles per galon', main = 'Residuals for models with horsepower')
+points(mtcars$wt, hp.interaction.resid, col = 'blue', pch = 18)
+legend('topright', legend = c('Mpg ~ horsepower + transmission', 'Mpg ~ horsepower * transmission'), text.col = c('orange', 'blue'))
+abline(0, 0)
+```
